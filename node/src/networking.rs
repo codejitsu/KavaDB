@@ -1,4 +1,7 @@
-use std::{io::{Read, Write}, net::TcpListener};
+use std::{
+    io::{Read, Write},
+    net::TcpListener,
+};
 
 use crate::{commands, log, storage::StorageBuilder};
 use std::sync::{Arc, Mutex};
@@ -41,7 +44,8 @@ pub fn start_node(host: &str, port: u16, storage_type: String, log_enabled: bool
                                 }
 
                                 commands::Command::ReadKeyByRange(start, end) => {
-                                    let res = storage.lock().unwrap().read_key_by_range(&start, &end);
+                                    let res =
+                                        storage.lock().unwrap().read_key_by_range(&start, &end);
                                     let response = match res {
                                         Ok(pairs) => {
                                             let mut resp = String::new();
@@ -59,7 +63,7 @@ pub fn start_node(host: &str, port: u16, storage_type: String, log_enabled: bool
                                 commands::Command::BatchPut(entries) => {
                                     let mut kv_pairs = Vec::new();
                                     let mut iter = entries.into_iter();
-                                    
+
                                     while let (Some(k), Some(v)) = (iter.next(), iter.next()) {
                                         kv_pairs.push((k, v));
                                     }
