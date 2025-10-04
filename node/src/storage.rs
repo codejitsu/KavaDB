@@ -95,3 +95,61 @@ impl StorageBuilder {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_in_memory_storage_put_and_read() {
+        let mut storage = InMemoryStorage::new();
+        storage.put("key1".to_string(), "value1".to_string()).unwrap();
+        let value = storage.read(&"key1".to_string()).unwrap();
+        assert_eq!(value, "value1");
+    }
+
+    #[test]
+    fn test_in_memory_storage_read_key_by_range() {
+        let mut storage = InMemoryStorage::new();
+        storage.put("key1".to_string(), "value1".to_string()).unwrap();
+        storage.put("key2".to_string(), "value2".to_string()).unwrap();
+        storage.put("key3".to_string(), "value3".to_string()).unwrap();
+
+        let result = storage
+            .read_key_by_range(&"key1".to_string(), &"key2".to_string())
+            .unwrap();
+
+        let expected = vec![
+            ("key1".to_string(), "value1".to_string()),
+            ("key2".to_string(), "value2".to_string())
+        ];
+
+        result.iter().for_each(|(k, v)| {
+            assert_eq!(expected.contains(&(k.clone(), v.clone())), true);
+        });
+    }
+
+    #[test]
+    fn test_in_memory_storage_batch_put() {
+        let mut storage = InMemoryStorage::new();
+        let entries = vec![
+            ("key1".to_string(), "value1".to_string()),
+            ("key2".to_string(), "value2".to_string()),
+        ];
+        storage.batch_put(entries).unwrap();
+
+        let value1 = storage.read(&"key1".to_string()).unwrap();
+        let value2 = storage.read(&"key2".to_string()).unwrap();
+        assert_eq!(value1, "value1");
+        assert_eq!(value2, "value2");
+    }
+
+    #[test]
+    fn test_in_memory_storage_delete() {
+        let mut storage = InMemoryStorage::new();
+        storage.put("key1".to_string(), "value1".to_string()).unwrap();
+        storage.delete(&"key1".to_string()).unwrap();
+        let result = storage.read(&"key1".to_string());
+        assert!(result.is_err());
+    }
+}

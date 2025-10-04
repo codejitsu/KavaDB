@@ -27,6 +27,7 @@ impl TryFrom<&str> for Command {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
