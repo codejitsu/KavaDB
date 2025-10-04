@@ -1,8 +1,10 @@
+use std::collections::HashMap;
 use std::env;
 
 use crate::config::{load_config, NodeConfig};
 use crate::networking::start_node;
 use crate::gossip::start_gossip;
+use std::sync::{Arc, Mutex};
 
 mod commands;
 mod log;
@@ -68,11 +70,16 @@ fn main() {
         log::log(&format!("{}Cluster node: {}", current, node), log_enabled);
     }
 
-    let rest_nodes = cluster_nodes.iter()
-        .filter(|&n| *n != format!("{}:{}", host, port_num)).cloned().collect();
+    let cluster_snapshot: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
+
+    // add myself to the cluster snapshot
+    cluster_snapshot.lock().unwrap().insert(config.me.clone(), format!("{}:{}", host, port_num));
 
     start_gossip(
-        rest_nodes,
+        cluster_snapshot,
+        cluster_nodes_config.into_values().collect(),
+        format!("{}:{}", host, port_num),
+        config.me,
         log_enabled
     );
 

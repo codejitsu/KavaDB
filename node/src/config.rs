@@ -14,6 +14,7 @@ pub struct NodeConfig {
     pub port: String,
     pub storage: String,
     pub log_enabled: String,
+    pub me: String,
     pub cluster: HashMap<String, ClusterNode>,
 }
 
@@ -24,7 +25,7 @@ pub struct NodeConfigBuilder {
 impl NodeConfigBuilder {
     fn new() -> NodeConfigBuilder {
         NodeConfigBuilder {
-            config: NodeConfig { host: "".into(), port: "".into(), storage: "".into(), log_enabled: "".into(), cluster: HashMap::new() }
+            config: NodeConfig { host: "".into(), port: "".into(), storage: "".into(), log_enabled: "".into(), me: "".into(), cluster: HashMap::new() }
         }
     }
 
@@ -68,6 +69,15 @@ impl NodeConfigBuilder {
         }
     }    
 
+    pub fn with_me(&self, me: String) -> NodeConfigBuilder {
+        Self {
+            config: NodeConfig { 
+                me: me.clone(),
+                ..self.config.clone()
+            }
+        }
+    }
+        
     pub fn with_cluster_host(&self, node_id: &str, node_host: String) -> NodeConfigBuilder {
         let mut cluster = self.config.cluster.clone();
 
@@ -117,7 +127,7 @@ impl NodeConfig  {
     }
 
     pub fn default() -> NodeConfig {
-        NodeConfig { host: "localhost".into(), port: "8080".into(), storage: "memory".into(), log_enabled: "true".into(), cluster: HashMap::new() }
+        NodeConfig { host: "localhost".into(), port: "8080".into(), storage: "memory".into(), log_enabled: "true".into(), me: "1".into(), cluster: HashMap::new() }
     }
 }
 
@@ -137,6 +147,7 @@ pub fn load_config(path: &str) -> Result<NodeConfig, std::io::Error> {
                 "port" => config_builder = config_builder.with_port(value.trim().to_string()),                
                 "storage" => config_builder = config_builder.with_storage(value.trim().to_string()),      
                 "log_enabled" => config_builder = config_builder.with_log_enabled(value.trim().to_string()),
+                "me" => config_builder = config_builder.with_me(value.trim().to_string()),
                 
                 key if key.starts_with("cluster.node.") && key.ends_with(".host") => {
                     let node_id = key.split('.').collect::<Vec<&str>>()[2];
