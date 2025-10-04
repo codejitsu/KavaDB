@@ -1,7 +1,6 @@
-use std::collections::HashMap;
 use std::env;
-use std::fs;
 
+use crate::config::{load_config, NodeConfig};
 use crate::networking::start_node;
 use crate::gossip::start_gossip;
 
@@ -10,24 +9,7 @@ mod log;
 mod networking;
 mod storage;
 mod gossip;
-
-fn load_config(path: &str) -> Result<HashMap<String, String>, std::io::Error> {
-    let contents = fs::read_to_string(path)?;
-    let mut config = HashMap::new();
-
-    for line in contents.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-
-        if let Some((key, value)) = line.split_once('=') {
-            config.insert(key.trim().to_string(), value.trim().to_string());
-        }
-    }
-
-    Ok(config)
-}
+mod config;
 
 fn main() {
     // assume that kava.conf is in the current directory
@@ -46,19 +28,11 @@ fn main() {
         String::from("kava.conf")
     };
 
-    let config = load_config(&config_file).unwrap_or_else(|_| HashMap::new());
+    let config = load_config(&config_file).unwrap_or_else(|_| NodeConfig::default());
 
-    let host = config
-        .get("host")
-        .cloned()
-        .or_else(|| env::var("KAVA_HOST").ok())
-        .unwrap_or_else(|| "localhost".to_string());
+    let host = config.host;
 
-    let port = config
-        .get("port")
-        .cloned()
-        .or_else(|| env::var("KAVA_PORT").ok())
-        .unwrap_or_else(|| "8080".to_string());
+    let port = config.port;
 
     let port_num: u16 = match port.parse() {
         Ok(p) => p,
@@ -68,17 +42,9 @@ fn main() {
         }
     };
 
-    let storage_type = config
-        .get("storage")
-        .cloned()
-        .unwrap_or_else(|| "memory".to_string());
+    let storage_type = config.storage;
 
-    let log_enabled = config
-        .get("log_enabled")
-        .cloned()
-        .unwrap_or_else(|| "true".to_string())
-        .to_lowercase()
-        == "true";
+    let log_enabled = config.log_enabled.to_lowercase() == "true";
 
     log::log(
         &format!(
@@ -88,15 +54,9 @@ fn main() {
         log_enabled,
     );
 
-    let cluster_nodes_config = config
-        .get("cluster")
-        .cloned()
-        .unwrap_or_else(|| "".to_string());
+    let cluster_nodes_config = config.cluster;
 
-    let cluster_nodes: Vec<String> = cluster_nodes_config
-        .split(',')
-        .map(|s| s.trim().to_string())
-        .collect();
+    let cluster_nodes: Vec<String> = cluster_nodes_config.iter().map(|(_, v)| format!("{}:{}", v.host, v.port)).collect();
 
     for node in &cluster_nodes {
         let current = if *node == format!("{}:{}", host, port_num) {
@@ -108,12 +68,11 @@ fn main() {
         log::log(&format!("{}Cluster node: {}", current, node), log_enabled);
     }
 
+    let rest_nodes = cluster_nodes.iter()
+        .filter(|&n| *n != format!("{}:{}", host, port_num)).cloned().collect();
+
     start_gossip(
-        cluster_nodes
-            .iter()
-            .filter(|host_port| **host_port != format!("{}:{}", host, port_num))
-            .cloned()
-            .collect(),
+        rest_nodes,
         log_enabled
     );
 
