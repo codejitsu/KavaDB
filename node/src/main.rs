@@ -2,6 +2,10 @@ use std::env;
 use std::fs;
 use std::collections::HashMap;
 
+use crate::networking::start_node;
+
+mod networking;
+
 fn load_config(path: &str) -> Result<HashMap<String, String>, std::io::Error> {
     let contents = fs::read_to_string(path)?;
     let mut config = HashMap::new();
@@ -60,7 +64,6 @@ fn main() {
             "8080".to_string()
         });
 
-
     let port_num: u16 = match port.parse() {
         Ok(p) => p,
         Err(_) => {
@@ -81,4 +84,6 @@ fn main() {
 
         println!("{}Cluster node: {}", current, node);
     }
+
+    start_node(&host, port_num);
 }
