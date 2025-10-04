@@ -1,7 +1,11 @@
 pub trait Storage {
     fn put(&mut self, key: String, value: String) -> Result<(), String>;
     fn read(&self, key: &String) -> Result<String, String>;
-    fn read_key_by_range(&self, start: &String, end: &String) -> Result<Vec<(String, String)>, String>;
+    fn read_key_by_range(
+        &self,
+        start: &String,
+        end: &String,
+    ) -> Result<Vec<(String, String)>, String>;
     fn batch_put(&mut self, entries: Vec<(String, String)>) -> Result<(), String>;
     fn delete(&mut self, key: &String) -> Result<(), String>;
 }
@@ -31,7 +35,11 @@ impl Storage for InMemoryStorage {
             .ok_or_else(|| "Key not found".to_string())
     }
 
-    fn read_key_by_range(&self, start: &String, end: &String) -> Result<Vec<(String, String)>, String> {
+    fn read_key_by_range(
+        &self,
+        start: &String,
+        end: &String,
+    ) -> Result<Vec<(String, String)>, String> {
         let mut result = Vec::new();
         for (key, value) in &self.store {
             if key >= start && key <= end {
@@ -63,11 +71,16 @@ pub struct StorageBuilder {
 impl StorageBuilder {
     pub fn builder(storage_type: &str) -> Self {
         match storage_type {
-            "memory" => return StorageBuilder {
-                storage_type: "memory".to_string(),
-            },
+            "memory" => {
+                return StorageBuilder {
+                    storage_type: "memory".to_string(),
+                };
+            }
             _ => {
-                eprintln!("Unknown storage type '{}', defaulting to 'memory'", storage_type);
+                eprintln!(
+                    "Unknown storage type '{}', defaulting to 'memory'",
+                    storage_type
+                );
                 return StorageBuilder {
                     storage_type: "memory".to_string(),
                 };
@@ -78,7 +91,7 @@ impl StorageBuilder {
     pub fn build(self) -> Box<dyn Storage> {
         match self.storage_type.as_str() {
             "memory" => Box::new(InMemoryStorage::new()),
-            _ => unreachable!(), // This should never happen due to the builder logic            
+            _ => unreachable!(), // This should never happen due to the builder logic
         }
     }
 }
