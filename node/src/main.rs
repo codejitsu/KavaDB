@@ -6,6 +6,8 @@ use crate::networking::start_node;
 
 mod commands;
 mod networking;
+mod storage;
+mod log;
 
 fn load_config(path: &str) -> Result<HashMap<String, String>, std::io::Error> {
     let contents = fs::read_to_string(path)?;
@@ -75,12 +77,25 @@ fn main() {
         }
     };
 
-    println!("Starting server on {}:{}", host, port_num);
+    let storage_type = config
+        .get("storage")
+        .cloned()
+        .unwrap_or_else(|| "memory".to_string());
+
+    let log_enabled = config
+        .get("log_enabled")
+        .cloned()
+        .unwrap_or_else(|| "true".to_string())
+        .to_lowercase()
+        == "true";
+
+    log::log(&format!("Starting server on {}:{}, with storage: {}, logging: {}", host, port_num, storage_type, log_enabled), log_enabled);
 
     let cluster_nodes_config = config
         .get("cluster")
         .cloned()
         .unwrap_or_else(|| "".to_string());
+
     let cluster_nodes: Vec<String> = cluster_nodes_config
         .split(',')
         .map(|s| s.trim().to_string())
@@ -93,8 +108,8 @@ fn main() {
             "  "
         };
 
-        println!("{}Cluster node: {}", current, node);
+        log::log(&format!("{}Cluster node: {}", current, node), log_enabled);
     }
 
-    start_node(&host, port_num);
+    start_node(&host, port_num, storage_type, log_enabled);
 }
