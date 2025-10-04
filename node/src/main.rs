@@ -37,39 +37,28 @@ fn main() {
     // TODO implement consistent hashing for key distribution
     // TODO implement virtual nodes for better distribution
 
-    let config = load_config("kava.conf").unwrap_or_else(|_| HashMap::new());
+    let args: Vec<String> = env::args().collect();
+
+    let config_file = if args.len() >= 2 {
+        let file = &args[1];
+        file.clone()
+    } else {
+        String::from("kava.conf")
+    };
+
+    let config = load_config(&config_file).unwrap_or_else(|_| HashMap::new());
 
     let host = config
         .get("host")
         .cloned()
         .or_else(|| env::var("KAVA_HOST").ok())
-        .unwrap_or_else(|| {
-            let args: Vec<String> = env::args().collect();
-            if args.len() >= 2 {
-                let host_port = &args[1];
-                let parts: Vec<&str> = host_port.split(':').collect();
-                if parts.len() == 2 {
-                    return parts[0].to_string();
-                }
-            }
-            "localhost".to_string()
-        });
+        .unwrap_or_else(|| "localhost".to_string());
 
     let port = config
         .get("port")
         .cloned()
         .or_else(|| env::var("KAVA_PORT").ok())
-        .unwrap_or_else(|| {
-            let args: Vec<String> = env::args().collect();
-            if args.len() >= 2 {
-                let host_port = &args[1];
-                let parts: Vec<&str> = host_port.split(':').collect();
-                if parts.len() == 2 {
-                    return parts[1].to_string();
-                }
-            }
-            "8080".to_string()
-        });
+        .unwrap_or_else(|| "8080".to_string());
 
     let port_num: u16 = match port.parse() {
         Ok(p) => p,
@@ -93,8 +82,8 @@ fn main() {
 
     log::log(
         &format!(
-            "Starting server on {}:{}, with storage: {}, logging: {}",
-            host, port_num, storage_type, log_enabled
+            "Starting server on {}:{}, with storage: {}, logging: {}, config: {}",
+            host, port_num, storage_type, log_enabled, config_file
         ),
         log_enabled,
     );
