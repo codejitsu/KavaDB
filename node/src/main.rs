@@ -3,11 +3,13 @@ use std::env;
 use std::fs;
 
 use crate::networking::start_node;
+use crate::gossip::start_gossip;
 
 mod commands;
 mod log;
 mod networking;
 mod storage;
+mod gossip;
 
 fn load_config(path: &str) -> Result<HashMap<String, String>, std::io::Error> {
     let contents = fs::read_to_string(path)?;
@@ -107,8 +109,8 @@ fn main() {
         .map(|s| s.trim().to_string())
         .collect();
 
-    for node in cluster_nodes {
-        let current = if node == format!("{}:{}", host, port_num) {
+    for node in &cluster_nodes {
+        let current = if *node == format!("{}:{}", host, port_num) {
             "* "
         } else {
             "  "
@@ -116,6 +118,15 @@ fn main() {
 
         log::log(&format!("{}Cluster node: {}", current, node), log_enabled);
     }
+
+    start_gossip(
+        cluster_nodes
+            .iter()
+            .filter(|host_port| **host_port != format!("{}:{}", host, port_num))
+            .cloned()
+            .collect(),
+        log_enabled
+    );
 
     start_node(&host, port_num, storage_type, log_enabled);
 }
