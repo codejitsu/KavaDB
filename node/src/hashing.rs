@@ -16,7 +16,10 @@ impl HashRing {
         for node in cluster {
             for i in 0..vnodes_per_node {
                 let token = Self::hash(&format!("{}-{}", node._id, i));
-                vnodes.push(VNode { token, node: node.clone() });
+                vnodes.push(VNode {
+                    token,
+                    node: node.clone(),
+                });
             }
         }
 

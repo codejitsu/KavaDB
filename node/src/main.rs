@@ -1,19 +1,19 @@
 use std::collections::HashMap;
 use std::env;
 
-use crate::config::{load_config, NodeConfig};
+use crate::config::{NodeConfig, load_config};
+use crate::gossip::start_gossip;
 use crate::hashing::HashRing;
 use crate::networking::start_node;
-use crate::gossip::start_gossip;
 use std::sync::{Arc, Mutex};
 
 mod commands;
+mod config;
+mod gossip;
+mod hashing;
 mod log;
 mod networking;
 mod storage;
-mod gossip;
-mod config;
-mod hashing;
 
 fn main() {
     // assume that kava.conf is in the current directory
@@ -59,7 +59,10 @@ fn main() {
 
     let cluster_nodes_config = config.cluster;
 
-    let cluster_nodes: Vec<String> = cluster_nodes_config.iter().map(|(_, v)| format!("{}:{}", v.host, v.port)).collect();
+    let cluster_nodes: Vec<String> = cluster_nodes_config
+        .iter()
+        .map(|(_, v)| format!("{}:{}", v.host, v.port))
+        .collect();
 
     for node in &cluster_nodes {
         let current = if *node == format!("{}:{}", host, port_num) {
@@ -71,10 +74,14 @@ fn main() {
         log::log(&format!("{}Cluster node: {}", current, node), log_enabled);
     }
 
-    let cluster_snapshot: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
+    let cluster_snapshot: Arc<Mutex<HashMap<String, String>>> =
+        Arc::new(Mutex::new(HashMap::new()));
 
     // add myself to the cluster snapshot
-    cluster_snapshot.lock().unwrap().insert(config.me.clone(), format!("{}:{}", host, port_num));
+    cluster_snapshot
+        .lock()
+        .unwrap()
+        .insert(config.me.clone(), format!("{}:{}", host, port_num));
 
     let ring = HashRing::build(cluster_nodes_config.values().cloned().collect(), 128);
 
@@ -83,8 +90,16 @@ fn main() {
         cluster_nodes_config.into_values().collect(),
         format!("{}:{}", host, port_num),
         config.me.clone(),
-        log_enabled
+        log_enabled,
     );
 
-    start_node(&host, port_num, config.me.clone(), storage_type, log_enabled, &ring, &cluster_snapshot);
+    start_node(
+        &host,
+        port_num,
+        config.me.clone(),
+        storage_type,
+        log_enabled,
+        &ring,
+        &cluster_snapshot,
+    );
 }

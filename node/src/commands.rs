@@ -42,7 +42,7 @@ impl ToString for Command {
             }
             Command::Delete(key) => format!("DELETE {}", key),
         }
-    }    
+    }
 }
 
 #[cfg(test)]
