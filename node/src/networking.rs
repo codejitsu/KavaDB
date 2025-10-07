@@ -128,11 +128,57 @@ pub fn start_node(
                                     while let (Some(k), Some(v)) = (iter.next(), iter.next()) {
                                         kv_pairs.push((k, v));
                                     }
+                                
+                                    let distribution: HashMap<String, Vec<(String, String)>> = kv_pairs.into_iter().fold(HashMap::new(), |mut acc, (k, v)| {
+                                        let primary = ring.primary(&k).unwrap()._id.clone();
+                                        acc.entry(primary).or_insert_with(Vec::new).push((k, v));
+                                        acc
+                                    });
 
-                                    let res = storage.lock().unwrap().batch_put(kv_pairs);
-                                    let response = match res {
+                                    let values_for_me = distribution.get(&me_id).cloned().unwrap_or_default();
+
+                                    let res_me = storage.lock().unwrap().batch_put(values_for_me);
+
+                                    let mut responses = Vec::new();
+
+                                    for (node_id, entries) in distribution.into_iter() {
+                                        if node_id != me_id {
+                                            let primary_node = cluster_snapshot.lock().unwrap().get(&node_id).cloned();
+                                            if let Some(addr) = primary_node {
+                                                let parts: Vec<&str> = addr.split(':').collect();
+                                                if parts.len() == 2 {
+                                                    let node = ClusterNode {
+                                                        _id: node_id.clone(),
+                                                        host: parts[0].to_string(),
+                                                        port: parts[1].parse().unwrap_or("0".to_string()),
+                                                        gossip_port: "0".to_string(),
+                                                    };
+                                                    let cmd = Command::BatchPut(entries.clone().into_iter().flat_map(|(k, v)| vec![k, v]).collect());
+                                                    let response = forward_command(cmd, node, log_enabled, cluster_snapshot);
+                                                    log::log(&format!("Response from node {}: {}", node_id, response), log_enabled);
+                                                    responses.push(response);
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    let response_me = match res_me {
                                         Ok(_) => "OK\n".to_string(),
                                         Err(e) => format!("Error: {}\n", e),
+                                    };
+
+                                    responses.push(response_me);
+
+                                    let final_response = responses.iter().all(|r| r == "OK\n");
+
+                                    let partial_response = responses.iter().any(|r| r.starts_with("OK"));
+
+                                    let response = if final_response {
+                                        "OK\n".to_string()
+                                    } else if partial_response {
+                                        "Partial OK\n".to_string()
+                                    } else {
+                                        format!("Error: {}\n", responses.join("; "))
                                     };
 
                                     let _ = tcp_stream.write_all(response.as_bytes());

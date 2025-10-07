@@ -28,10 +28,13 @@ pub fn start_gossip(
         .cloned()
         .unwrap();
 
+    let cluster_nodes_talker = cluster_nodes.clone();
+    let cluster_nodes_listener = cluster_nodes.clone();
+
     // talker thread
     std::thread::spawn(move || {
         loop {
-            let rest = &cluster_nodes
+            let rest = cluster_nodes_talker
                 .iter()
                 .filter(|node| format!("{}:{}", node.host, node.port) != me_cloned)
                 .cloned()
@@ -109,7 +112,12 @@ pub fn start_gossip(
                             let parts: Vec<&str> = buffer.splitn(2, ':').collect();
                             if parts.len() == 2 {
                                 let node_id = parts[1].to_string();
-                                let addr = tcp_stream.peer_addr().unwrap().to_string();
+                                let addr = cluster_nodes_listener
+                                    .iter()
+                                    .find(|node| node._id == node_id)
+                                    .map(|node| format!("{}:{}", node.host, node.port))
+                                    .unwrap_or_else(|| "unknown".to_string());
+                                
                                 cluster_snapshot_listener
                                     .lock()
                                     .unwrap()
