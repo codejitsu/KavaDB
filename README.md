@@ -53,6 +53,8 @@ This command does not use consistent hashing and queries all keys in the local n
    cargo run
    ```
 
+The node will peak the the `kava.conf` file in the current directory for configuration by default.
+
 # Example Usage with Multiple Nodes
 To simulate a distributed environment, you can run multiple instances of the application with different configuration files.
 
