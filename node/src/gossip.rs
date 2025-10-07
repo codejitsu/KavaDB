@@ -3,7 +3,7 @@ use std::{collections::HashMap, io::{Read, Write}, sync::{Arc, Mutex}};
 use crate::{config::ClusterNode, log::log};
 
 pub fn start_gossip(
-    cluster_snapshot: Arc<Mutex<HashMap<String, String>>>,
+    cluster_snapshot: &Arc<Mutex<HashMap<String, String>>>,
     cluster_nodes: Vec<ClusterNode>, me: String, me_id: String, log_enabled: bool) {
     log(
         &format!("Starting gossip with cluster nodes: {:?}", cluster_nodes),

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::env;
 
 use crate::config::{load_config, NodeConfig};
+use crate::hashing::HashRing;
 use crate::networking::start_node;
 use crate::gossip::start_gossip;
 use std::sync::{Arc, Mutex};
@@ -12,12 +13,12 @@ mod networking;
 mod storage;
 mod gossip;
 mod config;
+mod hashing;
 
 fn main() {
     // assume that kava.conf is in the current directory
 
     // TODO implement file management for persistence (use memory at the beginning)
-    // TODO keep track of the cluster liveness via heartbeats (gossip?)
     // TODO implement consistent hashing for key distribution
     // TODO implement virtual nodes for better distribution
 
@@ -50,8 +51,8 @@ fn main() {
 
     log::log(
         &format!(
-            "Starting server on {}:{}, with storage: {}, logging: {}, config: {}",
-            host, port_num, storage_type, log_enabled, config_file
+            "Starting server on {}:{}, with id: [{}] with storage: {}, logging: {}, config: {}",
+            host, port_num, config.me, storage_type, log_enabled, config_file
         ),
         log_enabled,
     );
@@ -75,13 +76,15 @@ fn main() {
     // add myself to the cluster snapshot
     cluster_snapshot.lock().unwrap().insert(config.me.clone(), format!("{}:{}", host, port_num));
 
+    let ring = HashRing::build(cluster_nodes_config.values().cloned().collect(), 128);
+
     start_gossip(
-        cluster_snapshot,
+        &cluster_snapshot,
         cluster_nodes_config.into_values().collect(),
         format!("{}:{}", host, port_num),
-        config.me,
+        config.me.clone(),
         log_enabled
     );
 
-    start_node(&host, port_num, storage_type, log_enabled);
+    start_node(&host, port_num, config.me.clone(), storage_type, log_enabled, &ring, &cluster_snapshot);
 }

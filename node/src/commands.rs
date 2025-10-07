@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Command {
     Put(String, String),
     Read(String),
@@ -25,6 +25,24 @@ impl TryFrom<&str> for Command {
             _ => Err("Invalid command format".to_string()),
         }
     }
+}
+
+impl ToString for Command {
+    fn to_string(&self) -> String {
+        match self {
+            Command::Put(key, value) => format!("PUT {} {}", key, value),
+            Command::Read(key) => format!("READ {}", key),
+            Command::ReadKeyByRange(start, end) => format!("READRANGE {} {}", start, end),
+            Command::BatchPut(entries) => {
+                let mut cmd_str = String::from("BATCHPUT");
+                for entry in entries {
+                    cmd_str.push_str(&format!(" {}", entry));
+                }
+                cmd_str
+            }
+            Command::Delete(key) => format!("DELETE {}", key),
+        }
+    }    
 }
 
 #[cfg(test)]

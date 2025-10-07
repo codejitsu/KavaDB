@@ -1,5 +1,5 @@
 pub trait Storage {
-    fn put(&mut self, key: String, value: String) -> Result<(), String>;
+    fn put(&mut self, key: &String, value: String) -> Result<(), String>;
     fn read(&self, key: &String) -> Result<String, String>;
     fn read_key_by_range(
         &self,
@@ -23,8 +23,8 @@ impl InMemoryStorage {
 }
 
 impl Storage for InMemoryStorage {
-    fn put(&mut self, key: String, value: String) -> Result<(), String> {
-        self.store.insert(key, value);
+    fn put(&mut self, key: &String, value: String) -> Result<(), String> {
+        self.store.insert(key.clone(), value);
         Ok(())
     }
 
@@ -104,7 +104,7 @@ mod tests {
     fn test_in_memory_storage_put_and_read() {
         let mut storage = InMemoryStorage::new();
         storage
-            .put("key1".to_string(), "value1".to_string())
+            .put(&"key1".to_string(), "value1".to_string())
             .unwrap();
         let value = storage.read(&"key1".to_string()).unwrap();
         assert_eq!(value, "value1");
@@ -114,13 +114,13 @@ mod tests {
     fn test_in_memory_storage_read_key_by_range() {
         let mut storage = InMemoryStorage::new();
         storage
-            .put("key1".to_string(), "value1".to_string())
+            .put(&"key1".to_string(), "value1".to_string())
             .unwrap();
         storage
-            .put("key2".to_string(), "value2".to_string())
+            .put(&"key2".to_string(), "value2".to_string())
             .unwrap();
         storage
-            .put("key3".to_string(), "value3".to_string())
+            .put(&"key3".to_string(), "value3".to_string())
             .unwrap();
 
         let result = storage
@@ -156,7 +156,7 @@ mod tests {
     fn test_in_memory_storage_delete() {
         let mut storage = InMemoryStorage::new();
         storage
-            .put("key1".to_string(), "value1".to_string())
+            .put(&"key1".to_string(), "value1".to_string())
             .unwrap();
         storage.delete(&"key1".to_string()).unwrap();
         let result = storage.read(&"key1".to_string());
