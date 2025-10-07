@@ -117,7 +117,7 @@ pub fn start_gossip(
                                     .find(|node| node._id == node_id)
                                     .map(|node| format!("{}:{}", node.host, node.port))
                                     .unwrap_or_else(|| "unknown".to_string());
-                                
+
                                 cluster_snapshot_listener
                                     .lock()
                                     .unwrap()
