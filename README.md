@@ -14,12 +14,13 @@ The system uses consistent hashing to distribute keys across multiple nodes in t
 
 ## No consistent hashing (TODO)
 
-This command does not use consistent hashing and stores all keys in the local node only.
+This command does not use consistent hashing and queries all keys in the local node only.
 
 - RANGE start_key end_key
 
 # Features
 - In-memory storage with optional persistence (TODO)
+- Pluggable storage backends (in-memory, file-based, etc.)
 - Gossip protocol for node discovery and cluster membership
 - Simple command-line interface for interacting with the KV store
 - Basic error handling and logging
