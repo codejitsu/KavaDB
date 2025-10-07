@@ -104,6 +104,7 @@ pub fn start_node(
                                     }
                                 }
 
+                                // TODO handling READRANGE command with consistent hashing
                                 commands::Command::ReadKeyByRange(start, end) => {
                                     let res =
                                         storage.lock().unwrap().read_key_by_range(&start, &end);

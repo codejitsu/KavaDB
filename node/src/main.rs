@@ -19,8 +19,6 @@ fn main() {
     // assume that kava.conf is in the current directory
 
     // TODO implement file management for persistence (use memory at the beginning)
-    // TODO implement consistent hashing for key distribution
-    // TODO implement virtual nodes for better distribution
 
     let args: Vec<String> = env::args().collect();
 
