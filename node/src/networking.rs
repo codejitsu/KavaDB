@@ -137,13 +137,38 @@ pub fn start_node(
 
                                     let _ = tcp_stream.write_all(response.as_bytes());
                                 }
-                                commands::Command::Delete(key) => {
-                                    let res = storage.lock().unwrap().delete(&key);
-                                    let response = match res {
-                                        Ok(_) => "OK\n".to_string(),
-                                        Err(e) => format!("Error: {}\n", e),
-                                    };
-                                    let _ = tcp_stream.write_all(response.as_bytes());
+
+                                // handling DELETE command with consistent hashing
+                                commands::Command::Delete(ref key) => {
+                                    let primary = ring.primary(&key);
+
+                                    log(
+                                        &format!(
+                                            "Primary node for key '{}': {:?}",
+                                            key,
+                                            primary.unwrap()._id
+                                        ),
+                                        log_enabled,
+                                    );
+
+                                    if primary.unwrap()._id != me_id {
+                                        let response = forward_command(
+                                            cmd.clone(),
+                                            primary.unwrap().clone(),
+                                            log_enabled,
+                                            cluster_snapshot,
+                                        );
+
+                                        let _ = tcp_stream.write_all(response.as_bytes());
+                                    } else {
+                                        let res = storage.lock().unwrap().delete(&key);
+                                        let response = match res {
+                                            Ok(_) => "OK\n".to_string(),
+                                            Err(e) => format!("Error: {}\n", e),
+                                        };
+
+                                        let _ = tcp_stream.write_all(response.as_bytes());
+                                    }
                                 }
                             }
                         }
